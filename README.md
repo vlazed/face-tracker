@@ -34,6 +34,10 @@ This adds a Face Tracker tool, which contains a client websocket to the included
 
 ### Installation
 
+[![How to install](https://img.youtube.com/vi/RxYAKewekfw/0.jpg)](https://www.youtube.com/watch?v=RxYAKewekfw)
+
+Follow the video tutorial. If the video doesn't load, you can follow the tutorial below instead.
+
 Set up the server with steps 1 to 3. Once this is done, follow Steps 4 to 7 to use this tool.
 
 1. Download zip (click the <> Code button) (or `git clone`) this repository into your GMod addons folder.
