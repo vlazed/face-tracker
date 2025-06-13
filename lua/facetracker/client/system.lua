@@ -71,6 +71,9 @@ function system.setExpressions(entity, expressions)
 	local flexable = flexableInfo.flexables[entIndex]
 	if flexable then
 		flexable.expressions = expressions
+		if not next(flexable.expressions) then
+			removeFlexable(entIndex)
+		end
 	else
 		addFlexable(entIndex, expressions)
 	end
