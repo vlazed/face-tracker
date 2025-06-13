@@ -154,6 +154,10 @@ end
 ---@return number[]?
 ---@return Vector?
 function system.getFlex(entity)
+	if not IsValid(entity) then
+		return
+	end
+
 	local entIndex = entity:EntIndex()
 	local flexable = flexableInfo.flexables[entIndex]
 
@@ -166,6 +170,10 @@ end
 ---@param entity Entity
 ---@return Eye?
 function system.getEye(entity)
+	if not IsValid(entity) then
+		return
+	end
+
 	local entIndex = entity:EntIndex()
 	local flexable = flexableInfo.flexables[entIndex]
 
