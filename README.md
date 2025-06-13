@@ -32,6 +32,8 @@ This adds a Face Tracker tool, which contains a client websocket to the included
   - MediaPipe only runs in these [Python versions](https://ai.google.dev/edge/mediapipe/solutions/setup_python)
 - [GWSockets by FredyH](https://github.com/FredyH/GWSockets): the client version (rename the dll from gmsv to gmcl)
   -  This addon requires Visual C++ Redistributable 2017. See the above repository, which provides a link to the resource
+-  Webcam
+  - You may need to change your webcam's privacy settings so the Python server can access it
 
 ### Installation
 
