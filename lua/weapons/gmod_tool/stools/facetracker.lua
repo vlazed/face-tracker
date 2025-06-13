@@ -63,6 +63,7 @@ local ui = include("facetracker/client/ui.lua")
 local panelState = {
 	flexable = NULL,
 	expressions = {},
+	eyeExpressions = {},
 }
 
 ---@param cPanel ControlPanel|DForm

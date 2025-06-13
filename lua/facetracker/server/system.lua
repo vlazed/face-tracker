@@ -18,4 +18,7 @@ net.Receive("facetracker_replicate", function(len)
 	for i = 0, entity:GetFlexNum() - 1 do
 		entity:SetFlexWeight(i, net.ReadFloat())
 	end
+
+	local eyeTarget = net.ReadVector()
+	entity:SetEyeTarget(eyeTarget)
 end)

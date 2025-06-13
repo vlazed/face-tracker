@@ -78,10 +78,51 @@ function system:updateVariables(coefficients)
 	end
 end
 
+local mathFilter = {
+	IsNearlyEqual = true,
+	CubicBezier = true,
+	CHSpline = true,
+	BinToInt = true,
+	Approach = true,
+	ApproachAngle = true,
+	AngleDifference = true,
+	Truncate = true,
+	TimeFraction = true,
+	Remap = true,
+	randomseed = true,
+}
+
+---@package
+function system:init()
+	local funcs = {
+		mean = function(...)
+			local args = { ... }
+			local sum = 0
+			local count = 0
+			for _, arg in ipairs(args) do
+				if isnumber(arg) then
+					sum = sum + arg
+					count = count + 1
+				end
+			end
+
+			return sum / count
+		end,
+	}
+	for key, func in pairs(math) do
+		if not mathFilter[key] and isfunction(func) then
+			funcs[key] = func
+		end
+	end
+
+	system._parser:addFunctions(funcs)
+end
+
 local default = {}
 for i = 1, 53 do
 	default[i] = 0
 end
 system:updateVariables(default)
+system:init()
 
 FaceTracker.Parser = system

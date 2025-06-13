@@ -113,6 +113,63 @@ local function makeCategory(cPanel, name, type)
 	return category
 end
 
+---@param form DForm|ControlPanel
+---@return EyeSlider eyeSlider
+---@return DNumSlider strabismus
+local function eyePanel(form)
+	local sliderBackground = vgui.Create("DPanel", form)
+	sliderBackground:Dock(TOP)
+	sliderBackground:SetTall(225)
+	form:AddItem(sliderBackground)
+
+	-- 2 axis slider for the eye position
+	---@class EyeSlider: DSlider
+	---@field Knob Panel
+	local eyeSlider = vgui.Create("DSlider", sliderBackground)
+	eyeSlider:Dock(FILL)
+	eyeSlider:SetLockY()
+	eyeSlider:SetSlideX(0.5)
+	eyeSlider:SetSlideY(0.5)
+	eyeSlider:SetTrapInside(true)
+	-- Draw the 'button' different from the slider
+	eyeSlider.Knob.Paint = function(panel, w, h)
+		derma.SkinHook("Paint", "Button", panel, w, h)
+	end
+
+	eyeSlider.xp = vgui.Create("DTextEntry", sliderBackground)
+	eyeSlider.yp = vgui.Create("DTextEntry", sliderBackground)
+	eyeSlider.xp.type = "x"
+	eyeSlider.yp.type = "y"
+
+	eyeSlider:SetEnabled(false)
+
+	local oldPerformLayout = eyeSlider.PerformLayout
+
+	function eyeSlider:PerformLayout(w, h)
+		oldPerformLayout(self, w, h)
+		local x, y = 90, 20
+		local margin = 10
+
+		self.xp:SetSize(x, y)
+		self.yp:SetSize(x, y)
+		self.xp:SetPos(w - x - margin, h * 0.5 - y * 0.5)
+		self.yp:SetPos(w * 0.5 - x * 0.5, margin)
+	end
+
+	function eyeSlider:Paint(w, h)
+		local knobX, knobY = self.Knob:GetPos()
+		local knobW, knobH = self.Knob:GetSize()
+		surface.SetDrawColor(0, 0, 0, 250)
+		surface.DrawLine(knobX + knobW / 2, knobY + knobH / 2, w / 2, h / 2)
+		surface.DrawRect(w / 2 - 2, h / 2 - 2, 5, 5)
+	end
+
+	local strabismus = form:NumSlider("#tool.eyeposer.strabismus", "", -1, 1)
+	---@cast strabismus DNumSlider
+
+	return eyeSlider, strabismus
+end
+
 ---@param cPanel DForm|ControlPanel
 ---@param panelProps PanelProps
 ---@param panelState PanelState
@@ -155,6 +212,9 @@ function ui.ConstructPanel(cPanel, panelProps, panelState)
 	local remove = cPanel:Button("#tool.facetracker.remove", "")
 	local expressionForm = makeCategory(cPanel, "#tool.facetracker.expressions", "DForm")
 
+	local eyeForm = makeCategory(cPanel, "#tool.facetracker.eyetracking", "DForm")
+	local eyeSlider, strabismus = eyePanel(eyeForm)
+
 	local arkitForm = makeCategory(cPanel, "#tool.facetracker.blendshapes", "DForm")
 	local latency = arkitForm:Help(Format("%s (ms): %d", language.GetPhrase("#tool.facetracker.latency"), 0))
 	latency.now = SysTime()
@@ -177,6 +237,8 @@ function ui.ConstructPanel(cPanel, panelProps, panelState)
 		arkitForm = arkitForm,
 		latency = latency,
 		remove = remove,
+		eyeSlider = eyeSlider,
+		strabismus = strabismus,
 	}
 end
 
@@ -191,6 +253,8 @@ function ui.HookPanel(panelChildren, panelProps, panelState)
 	local expressionForm = panelChildren.expressionForm
 	local latency = panelChildren.latency
 	local remove = panelChildren.remove
+	local strabismus = panelChildren.strabismus
+	local eyeSlider = panelChildren.eyeSlider
 
 	local flexable = panelState.flexable
 	local player = LocalPlayer()
@@ -219,9 +283,13 @@ function ui.HookPanel(panelChildren, panelProps, panelState)
 			function entry:OnValueChange(newVal)
 				newVal = string.gsub(newVal, "%s+", "")
 				panelState.expressions[flexName] = #newVal > 0 and newVal or nil
-				FaceTracker.System.setExpressions(flexable, panelState.expressions)
+				FaceTracker.System.setExpressions(flexable, panelState.expressions, panelState.eyeExpressions)
 			end
 		end
+
+		eyeSlider.xp:SetText(panelState.eyeExpressions.x or "")
+		eyeSlider.yp:SetText(panelState.eyeExpressions.y or "")
+		strabismus:SetValue(panelState.eyeExpressions.s or 0)
 	end
 
 	function FaceTracker.Socket:onConnected()
@@ -259,9 +327,34 @@ function ui.HookPanel(panelChildren, panelProps, panelState)
 		presets:SetEntity(flexable)
 		presets:SetText(helpers.getModelNameNice(flexable))
 
-		panelState.expressions = FaceTracker.System.getExpressions(flexable) or {}
+		panelState.expressions, panelState.eyeExpressions = FaceTracker.System.getExpressions(flexable)
 		refreshExpressions()
 	end
+
+	function strabismus:OnValueChanged(value)
+		panelState.eyeExpressions.s = value
+		FaceTracker.System.setExpressions(flexable, panelState.expressions, panelState.eyeExpressions)
+	end
+
+	local function expressionChanged(panel, newVal)
+		panelState.eyeExpressions[panel.type] = #newVal > 0 and newVal or nil
+		FaceTracker.System.setExpressions(flexable, panelState.expressions, panelState.eyeExpressions)
+	end
+
+	local oldThink = eyeSlider.Think
+	function eyeSlider:Think()
+		oldThink(self)
+
+		local eye = FaceTracker.System.getEye(flexable)
+
+		if eye then
+			self:SetSlideX(eye.x)
+			self:SetSlideY(eye.y)
+		end
+	end
+
+	eyeSlider.xp.OnValueChange = expressionChanged
+	eyeSlider.yp.OnValueChange = expressionChanged
 
 	function presets:OnSaveSuccess()
 		notification.AddLegacy("Expressions saved", NOTIFY_GENERIC, 5)
@@ -272,14 +365,21 @@ function ui.HookPanel(panelChildren, panelProps, panelState)
 	end
 
 	function presets:OnSavePreset()
-		return util.TableToJSON(panelState.expressions, true)
+		local data = {
+			expressions = panelState.expressions,
+			eyeExpressions = panelState.eyeExpressions,
+		}
+
+		return util.TableToJSON(data, true)
 	end
 
-	---@param preset FlexExpressions
+	---@param preset {expressions: FlexExpressions, eyeExpressions: EyeExpression}
 	function presets:OnLoadPreset(preset)
 		if istable(preset) then
-			panelState.expressions = preset
-			FaceTracker.System.setExpressions(flexable, preset)
+			local expressions, eyeExpressions = preset.expressions or preset, preset.eyeExpressions or {}
+			panelState.expressions = expressions
+			panelState.eyeExpressions = eyeExpressions
+			FaceTracker.System.setExpressions(flexable, expressions, eyeExpressions)
 			refreshExpressions()
 			notification.AddLegacy("Expressions loaded", NOTIFY_GENERIC, 5)
 		end
@@ -287,12 +387,13 @@ function ui.HookPanel(panelChildren, panelProps, panelState)
 
 	function remove:DoClick()
 		panelState.expressions = {}
-		FaceTracker.System.setExpressions(flexable, panelState.expressions)
+		panelState.eyeExpressions = {}
+		FaceTracker.System.setExpressions(flexable, panelState.expressions, panelState.eyeExpressions)
 		refreshExpressions()
 	end
 
 	if IsValid(flexable) then
-		panelState.expressions = FaceTracker.System.getExpressions(flexable) or {}
+		panelState.expressions, panelState.eyeExpressions = FaceTracker.System.getExpressions(flexable)
 		refreshExpressions()
 		presets:SetEnabled(true)
 	else
