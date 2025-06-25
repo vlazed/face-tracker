@@ -65,7 +65,7 @@ This addon addresses these two limitations with a customizable system for mappin
 
 Naturally, as face pose capture implies acting performance capture abilities, this tool can be used to bake a facial performance into any GMod animation tool, particularly with Stop Motion Helper's Physics Recorder.
 
-Despite outputting values from 52 ARKit blendshapes, only a few of them are unusable. `tongueOut`, and the `noseSneer` (left and right) blendshapes are one of those unusable values, as they are zeroed out from my experience.
+Despite outputting values from 52 ARKit blendshapes, only a few of them are unusable. `tongueOut`, and the `noseSneer` (left and right) blendshapes are one of those unusable values, as they are zeroed out. This unofficial [issue](https://github.com/google-ai-edge/mediapipe/issues/5329) on Google's MediaPipe repo summarizes some of these same problems with Blendshape Model V2.
 
 This tool is limited to facial performance only. There are no plans to integrate MediaPipe's pose estimation solution (like in GPoser). 
 
